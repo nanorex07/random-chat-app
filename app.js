@@ -37,6 +37,7 @@ io.on('connection', (socket) => {
       socket.color = auth.color;
       socket.connected_to = null;
       handle_connection(socket);
+      io.emit('increment-users', Object.keys(io.sockets.connected).length);
     })
 
     socket.on('disconnect', () => {
@@ -49,6 +50,7 @@ io.on('connection', (socket) => {
       else{
         freeSocket = null;
       }
+      io.emit('increment-users', Object.keys(io.sockets.connected).length);
     });
 
     socket.on('chat-message', (message)=>{

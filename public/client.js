@@ -10,7 +10,7 @@ const exit_btn = document.getElementById("exit-btn");
 const send_btn = document.getElementById("send-btn");
 const message_input = document.getElementById("message");
 const client_color = document.getElementById("client_color");
-
+const total_users = document.getElementById("online-users")
 
 
 let connected = false;
@@ -46,8 +46,12 @@ const send_msg = (e)=>{
             }
         }
     }
-    if((e instanceof ))
+
 }
+
+socket.on('increment-users', (users)=>{
+    total_users.innerHTML = `${users} online`;
+})
 
 socket.on('toggle-connection', ()=>{
     if(connected){
