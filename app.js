@@ -10,7 +10,9 @@ const server = http.createServer(app);
 const io = socket(server);
 
 app.use(express.static('./public'));
-
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 let freeSocket = null;
 
 
