@@ -1,4 +1,5 @@
-const socket = io();
+
+const socket = io({autoConnect: false});
 
 const client_name = document.getElementById("client_name");
 const start_chat = document.getElementById("start_btn");
@@ -10,12 +11,18 @@ const send_btn = document.getElementById("send-btn");
 const message_input = document.getElementById("message");
 const client_color = document.getElementById("client_color");
 
+
+
+let connected = false;
+
 const swtich_to_chat = ()=>{
     home_sec.style.display = "none";
     message_sec.style.display = "block";
 }
 
 exit_btn.addEventListener('click', ()=>{
+    socket.disconnect();
+    connected = false;
     home_sec.style.display = "block";
     message_sec.style.display = "none";
 })
@@ -23,7 +30,7 @@ exit_btn.addEventListener('click', ()=>{
 const send_msg = (e)=>{
     if ((e instanceof KeyboardEvent && e.code=='Enter') || e instanceof PointerEvent){
         if(message_input.value){
-
+            socket.emit("chat-message", message.value);
             const adder = `
             <div class="row mt-2 justify-content-end">
             <div class="col-8 border bg-light p-2 rounded">
@@ -31,23 +38,37 @@ const send_msg = (e)=>{
               <p class="fw-normal">${message_input.value}</p>
             </div>
             </div>
-            `
-            message_div.innerHTML += adder;
-            socket.emit("chat-message", message.value);
-            message_input.value = ''
+            `   
+            if(connected){
+                message_div.innerHTML += adder;
+                message_input.value = ''
+                message_div.scrollTop = message_div.scrollHeight;
+            }
         }
     }
+    if((e instanceof ))
 }
 
-socket.on('joined-chat', (name) => {
+socket.on('toggle-connection', ()=>{
+    if(connected){
+        connected = false;
+    }else{
+        connected = true;
+        message_div.innerHTML = '';
+    }
+})
+
+socket.on('info', (msg) => {
     const adder = `
     <div class="row mt-2 justify-content-center">
         <div class="col d-flex justify-content-center p-2">
-            <p class="fw-normal text-secondry fw-italic">${name} has connected</p>
+            <p class="fw-normal text-secondry fw-italic">${msg}</p>
         </div>
     </div>
     `
     message_div.innerHTML += adder;
+    message_div.scrollTop = message_div.scrollHeight;
+
 })
 
 socket.on('new-msg', (obj) => {
@@ -60,6 +81,8 @@ socket.on('new-msg', (obj) => {
     </div>
     `
     message_div.innerHTML += adder;
+    message_div.scrollTop = message_div.scrollHeight;
+
 })
 
 start_chat.addEventListener("click", ()=>{
@@ -67,7 +90,10 @@ start_chat.addEventListener("click", ()=>{
         alert("please enter a name to start");
         return;
     }
-    socket.emit('send-name', { name: client_name.value, color: client_color.value});
+    message_div.innerHTML = ''
+    const auth = { username: client_name.value, color: client_color.value};
+    socket.connect()
+    socket.emit("client_info", auth)
     swtich_to_chat();
 })
 
