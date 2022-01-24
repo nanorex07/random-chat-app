@@ -2,6 +2,7 @@ const express = require("express");
 const socket = require("socket.io");
 const http = require("http");
 const path = require("path");
+const e = require("express");
 const app = express();
 const PORT = 3000 || process.env.PORT;
 const server = http.createServer(app);
@@ -10,20 +11,50 @@ const io = socket(server);
 
 app.use(express.static('./public'));
 
-io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.on('disconnect', () => {
-      console.log('user disconnected');
-    });
+let freeSocket = null;
 
-    socket.on('send-name', (client)=>{
-      socket.username = client.name;
-      socket.color = client.color;
-      socket.broadcast.emit('joined-chat', client.name);
+
+const handle_connection = (socket)=>{
+  if(freeSocket != null){
+    socket.connected_to = freeSocket;
+    freeSocket.connected_to = socket;
+    socket.emit('toggle-connection');
+    freeSocket.emit('toggle-connection');
+    socket.emit("info", `Connected to ${freeSocket.username}`);
+    freeSocket.emit("info", `Connected to ${socket.username}`); 
+    freeSocket = null;
+  }
+  else{
+    freeSocket = socket;
+    socket.emit("info", `waiting for a user to connect...`);
+  }
+}
+
+io.on('connection', (socket) => {
+
+    socket.on("client_info", (auth)=>{
+      socket.username = auth.username;
+      socket.color = auth.color;
+      socket.connected_to = null;
+      handle_connection(socket);
     })
 
+    socket.on('disconnect', () => {
+      if(socket.connected_to) {
+        socket.connected_to.emit('info',`${socket.username} has disconnected.`);
+        socket.connected_to.emit(`toggle-connection`);
+        socket.connected_to.connected_to = null;
+        handle_connection(socket.connected_to);
+      }
+      else{
+        freeSocket = null;
+      }
+    });
+
     socket.on('chat-message', (message)=>{
-      socket.broadcast.emit("new-msg", {name: socket.username, color:socket.color,  message: message, })
+      if(socket.connected_to){
+        socket.connected_to.emit("new-msg", {name: socket.username, color:socket.color,  message: message, })
+      }
     })
   });
 
